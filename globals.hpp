@@ -10,6 +10,7 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <filesystem>
 #include "HeliosDac.h"
 
 inline bool running = true;
@@ -39,7 +40,95 @@ inline const int minColor = 0;   //Time to make a proper globals.hpp with all th
 inline int maxPPS = 15000;
 inline float maxLsObjectDt = 1.f/60.f;
 
-inline sf::Font usedFont;
+class ResourcesManager {
+private:
+    std::unordered_map<std::string, sf::Texture> textures;
+    std::unordered_map<std::string, sf::Font> fonts;
+    std::unordered_map<std::string, std::string> locale;
+    sf::Texture errorTexture;
+    sf::Font errorFont;
+    sf::Font& pickedFont = errorFont;
+public:
+    const std::string texturesPath = "Resources/Textures/";
+    const std::string fontsPath = "Resources/Fonts/";
+    const std::string localePath = "Resources/Localization/";
+
+    sf::Texture& getTexture(const std::string& name) {
+        auto it = textures.find(name);
+        if (it == textures.end()) {
+            return errorTexture;
+        }
+        else {
+            return it->second;
+        }
+    }
+
+    sf::Font& getPickedFont() {
+        return pickedFont;
+    }
+
+    void pickFont(const std::string& name) {
+        auto it = fonts.find(name);
+        if(it == fonts.end()) {
+            pickedFont = errorFont;
+        }
+        else {
+            pickedFont = it->second;
+        }
+    }
+
+    sf::Font& getFont(const std::string& name) {
+        auto it = fonts.find(name);
+        if (it == fonts.end()) {
+            return errorFont;
+        }
+        else {
+            return it->second;
+        }
+    }
+
+    std::string getLocale(const std::string& name) {
+        auto it = locale.find(name);
+        if (it == locale.end()) {
+            return name;
+        }
+        else {
+            return it->second;
+        }
+    }
+
+    void loadEverything() {
+        if(!errorTexture.loadFromFile(texturesPath + "error.png"))
+            throw std::runtime_error("Son, even the default texture failed to load");
+        if(!errorFont.openFromFile(fontsPath + "MINECRAFTIA_ERROR.ttf"))
+            throw std::runtime_error("Son, even the default font failed to load");
+
+        sf::Texture tempTxt;
+        for(auto entry : std::filesystem::directory_iterator(texturesPath)) {
+            std::string file = entry.path().filename().string();
+            std::string fileName = entry.path().stem().string();
+
+            if(tempTxt.loadFromFile(texturesPath+file)) {
+                textures.insert(std::make_pair(fileName, tempTxt));
+            }
+        }
+
+        sf::Font tempFont;
+        for(auto entry : std::filesystem::directory_iterator(fontsPath)) {
+            std::string file = entry.path().filename().string();
+            std::string fileName = entry.path().stem().string();
+
+            if(tempFont.openFromFile(fontsPath+file)) {
+                fonts.insert(std::make_pair(fileName, tempFont));
+            }
+        }
+    }
+
+    ResourcesManager() {
+        loadEverything();
+        pickedFont = getFont("Arial");
+    }
+};
 
 class InputManager{
 private:
@@ -126,3 +215,4 @@ public:
 };
 
 inline static InputManager input;
+inline static ResourcesManager resources;

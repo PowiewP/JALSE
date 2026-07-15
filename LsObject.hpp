@@ -212,6 +212,7 @@ public:
                 dt -= maxLsObjectDt;
             }
             else{
+                points.clear();
                 effectFunc(this, dt);
                 currentTime += dt;
                 dt = 0.f;

@@ -87,6 +87,7 @@ void mainLoop(){
 
         panel.tick(dt, windowManager.window);
         zipper.tick(dt, windowManager.window);
+        button.tick(dt, windowManager.window);
 
         windowManager.window.clear(backgroundColor);
         prevRend.draw(windowManager.window);
@@ -102,7 +103,6 @@ void mainLoop(){
 }
 
 int main(){
-    usedFont.openFromFile("arial.ttf");
     windowManager = WindowManager(1820, 980, false);
 
     proj.length = 60.f;
@@ -137,12 +137,15 @@ int main(){
     valueInput2 = ValueInput(700, 300, 400, 60, sf::Color(230,230,230), sf::Color(100,100,100), 5, sf::Color(8,8,8), proj.getLsObjectByID(1).getProperty("numOfDots").getConfig<int>());
     valueInput3 = ValueInput(700, 600, 400, 70, sf::Color(230,230,230), sf::Color(100,100,100), 5, sf::Color(8,8,8), "sup");*/
 
+    resources.pickFont("SourceSanPro");
+
     panel = ObjectEditPanel(1000, 100, 700, 800, sf::Color(230,230,230), sf::Color(100,100,100), 5, proj.getLsObjectByID(ID));
 
     zipper = Zipper(20, 20, 1000, 50, 50.f, 0.f, 100.f);
     zipper.setColors({100, 0, 0}, {200, 0, 0}, {50, 0, 0});
 
-    button = Button({500, 200}, {10, 500}, "Shoot the Shields", 50, 4);
+    button = Button({1300, 750}, {200, 200}, resources.getTexture("nigger"), 150, 4);
+    button.setColors({150, 0, 0}, {100, 0, 0});
 
     deltaClock.restart();
     mainLoop();

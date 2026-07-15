@@ -46,10 +46,10 @@ inline void drawOutlineOf(const sf::FloatRect& rect, float outlineWidth, sf::Col
     target.draw(line);
 }
 
-inline int getFontSizeOfHeight(unsigned int height) {
+inline int getFontSizeOfHeight(unsigned int height, sf::Font& font) {
     if(height < 5)
         return 5;
-    sf::Text temp(usedFont, "Mega gay", height+50);
+    sf::Text temp(font, "Mega gay", height+50);
     while (temp.getGlobalBounds().size.y > height) {
         temp.setCharacterSize(temp.getCharacterSize()-1);
     }

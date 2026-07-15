@@ -93,7 +93,7 @@ public:
 class ValueInput{
 private:
     sf::RectangleShape field;
-    sf::Text inputText = sf::Text(usedFont, "|", 1);
+    sf::Text inputText = sf::Text(resources.getPickedFont(), "|", 1);
     std::string inputString;
     sf::RenderTexture canvas;
     sf::View canvasView;
@@ -272,7 +272,7 @@ public:
         field.setPosition(static_cast<sf::Vector2f>(inputPos));
         field.setFillColor(backgroundColor);
 
-        inputText.setFont(usedFont);
+        inputText.setFont(resources.getPickedFont());
         inputText.setCharacterSize(inputSize.y-textPadding);
         inputText.setFillColor(textColor);
         inputString = valueToInput();
@@ -392,11 +392,12 @@ public:
             if (zip.getGlobalBounds().contains(static_cast<sf::Vector2f>(input.mousePos)) && input.mouseLeftJustPressed) {
                 zipHeld = true;
                 holdOffset = {zip.getPosition().x - input.mousePos.x, zip.getPosition().y - input.mousePos.y};
+                zip.setFillColor(sf::Color(std::clamp(zipColor.r-50, 0, 255), std::clamp(zipColor.g-50, 0, 255), std::clamp(zipColor.b-50, 0, 255)));
             }
         }
-        if (zipHeld) {
-            if (input.mouseLeftJustReleased)
-                zipHeld = false;
+        if (zipHeld && input.mouseLeftJustReleased) {
+            zipHeld = false;
+            zip.setFillColor(zipColor);
         }
 
         if (zipHeld) {
@@ -458,7 +459,7 @@ public:
 class Button {
 private:
     sf::RectangleShape button;
-    std::variant<sf::Text, sf::Sprite> signature = sf::Text(usedFont, "Herobrine");
+    std::variant<sf::Text, sf::Sprite> signature = sf::Text(resources.getPickedFont(), "Herobrine");
 public:
     sf::Vector2u buttonSize;
     sf::Vector2u buttonPos;
@@ -471,6 +472,29 @@ public:
 
     bool isPressed = false;
 
+    void tick(float dt, sf::RenderWindow& window) {
+        if(sf::Rect(buttonPos, buttonSize).contains(input.mousePos) && input.mouseLeftJustPressed) {
+            isPressed = true;
+            button.setFillColor(sf::Color(std::clamp(backgroundColor.r-50, 0, 255), std::clamp(backgroundColor.g-50, 0, 255), std::clamp(backgroundColor.b-50, 0, 255)));
+        }
+        if(isPressed && input.mouseLeftJustReleased) {
+            isPressed = false;
+            button.setFillColor(backgroundColor);
+        }
+    }
+
+    void setColors(const sf::Color& backgroundColor, const sf::Color& outlineColor, const sf::Color& signatureColor = sf::Color::White) {
+        this->backgroundColor = backgroundColor;
+        this->textColor = textColor;
+        this->outlineColor = outlineColor;
+
+        button.setFillColor(backgroundColor);
+        if(std::holds_alternative<sf::Text>(signature))
+            std::get<sf::Text>(signature).setFillColor(signatureColor);
+        else
+            std::get<sf::Sprite>(signature).setColor(signatureColor);
+    }
+
     void draw(sf::RenderTarget& target) {
         target.draw(button);
         drawOutlineOf(button.getGlobalBounds(), outlineWidth, outlineColor, target);
@@ -481,17 +505,34 @@ public:
     }
 
     Button(){}
-    Button(sf::Vector2u buttonSize, sf::Vector2u buttonPos, std::variant<std::string, sf::Texture> signature, unsigned int signatureHeight, int outlineWidth) {
+    Button(sf::Vector2u buttonPos, sf::Vector2u buttonSize, std::string signature, unsigned int signatureHeight, int outlineWidth) {
         this->buttonSize = buttonSize;
         this->buttonPos = buttonPos;
         this->outlineWidth = outlineWidth;
         this->signatureHeight = signatureHeight;
-        if(std::holds_alternative<std::string>(signature)) {
-            sf::Text temp = sf::Text(usedFont, std::get<std::string>(signature), getFontSizeOfHeight(signatureHeight));
-            temp.setFillColor(textColor);
-            centerText(temp, sf::Rect(buttonPos, buttonSize));
-            this->signature = temp;
+
+        sf::Text temp = sf::Text(resources.getPickedFont(), signature, getFontSizeOfHeight(signatureHeight, resources.getPickedFont()));
+        temp.setFillColor(textColor);
+        centerText(temp, sf::Rect(buttonPos, buttonSize));
+        this->signature = temp;
+
+        button.setPosition(sf::Vector2f(buttonPos.x, buttonPos.y));
+        button.setSize(sf::Vector2f(buttonSize.x, buttonSize.y));
+        button.setFillColor(backgroundColor);
+    }
+    Button(sf::Vector2u buttonPos, sf::Vector2u buttonSize, const sf::Texture& signature, unsigned int signatureHeight, int outlineWidth) {
+        this->buttonSize = buttonSize;
+        this->buttonPos = buttonPos;
+        this->outlineWidth = outlineWidth;
+        this->signatureHeight = signatureHeight;
+
+        sf::Sprite temp = sf::Sprite(signature);
+        if(temp.getGlobalBounds().size.y > signatureHeight) {
+            temp.setScale({static_cast<float>(signatureHeight) / temp.getGlobalBounds().size.y, static_cast<float>(signatureHeight) / temp.getGlobalBounds().size.y});
         }
+        temp.setOrigin(temp.getLocalBounds().getCenter());
+        temp.setPosition(sf::Vector2f(buttonPos.x+(buttonSize.x/2), buttonPos.y+(buttonSize.y/2)));
+        this->signature = temp;
 
         button.setPosition(sf::Vector2f(buttonPos.x, buttonPos.y));
         button.setSize(sf::Vector2f(buttonSize.x, buttonSize.y));
@@ -525,7 +566,7 @@ public:
     }
 
     void generateRow(int rowNumber, std::string label, std::variant<int, float, std::string> var, bool disableInput = false){
-        sf::Text newText = sf::Text(usedFont, label, panelSize.y/23);
+        sf::Text newText = sf::Text(resources.getFont("Arial"), label, panelSize.y/23);
         newText.setFillColor(outlineColor);
         newText.setPosition({panelPos.x + (outlineWidth*4), panelPos.y + ((5.f+panelSize.y/25)*rowNumber)});
 
@@ -595,10 +636,39 @@ private:
     std::vector<sf::RectangleShape> bgRects;
     std::vector<sf::RectangleShape> topRowRects;
     std::vector<sf::Text> timeLabels;
+    Zipper verticalZipper;
+    Zipper horizontalZipper;
+
+    sf::Vector2u topRowSize;
+    unsigned horizontalZipperHeight;
+    unsigned verticalZipperWidth;
+    unsigned layerHeight;
+
+    static constexpr int defaultLayerCapacity = 5;
+    static constexpr float topRowHeightRatio = 0.1f;
+    static constexpr float zipperHeightRatio = 0.1f;
 public:
     sf::Vector2u timelineSize;
     sf::Vector2u timelinePos;
 
+    Project* project;
+
     sf::Color backgroundColor;
     sf::Color foregroundColor;
+    sf::Color outlineColor;
+
+    void generateTimeline() {
+
+    }
+
+    void generateZippers() {
+
+    }
+
+    Timeline(){}
+    Timeline(sf::Vector2u timelinePos, sf::Vector2u timelineSize, Project& project) {
+        this->timelineSize = timelineSize;
+        this->timelinePos = timelinePos;
+        this->project = &project;
+    }
 };

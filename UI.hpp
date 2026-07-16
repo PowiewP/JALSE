@@ -1,7 +1,7 @@
 #pragma once
 #include "utility.hpp"
 
-class PreviewRenderer{
+class LsPreviewRenderer{
 private:
     sf::RenderTexture canvas;
 public:
@@ -10,7 +10,7 @@ public:
     float pointWidth = 1.f;
     float timestamp = 0.f;
 
-    Project* previewedProject;
+    LsProject* previewedProject;
     std::unordered_set<unsigned int> previewedObjectsIDs;
 
     std::vector<HeliosPoint> points;
@@ -73,14 +73,14 @@ public:
         target.draw(displaySprite);
     }
 
-    void loadNewProject(Project& previewedProject, std::unordered_set<unsigned int> previewedObjectsIDs = {}){
+    void loadNewProject(LsProject& previewedProject, std::unordered_set<unsigned int> previewedObjectsIDs = {}){
         this->previewedProject = &previewedProject;
         this->previewedObjectsIDs = previewedObjectsIDs;
     }
 
-    PreviewRenderer(){}
-    PreviewRenderer(unsigned int posX, unsigned int posY, unsigned int sizeX, unsigned int sizeY, float pointWidth,
-                     Project& previewedProject, std::unordered_set<unsigned int> previewedObjectsIDs = {}){
+    LsPreviewRenderer(){}
+    LsPreviewRenderer(unsigned int posX, unsigned int posY, unsigned int sizeX, unsigned int sizeY, float pointWidth,
+                     LsProject& previewedProject, std::unordered_set<unsigned int> previewedObjectsIDs = {}){
         canvas.resize({maxCord, maxCord});
         displaySize = {sizeX, sizeY};
         displayPos = {posX, posY};
@@ -90,7 +90,7 @@ public:
     }
 };
 
-class ValueInput{
+class LsValueInput{
 private:
     sf::RectangleShape field;
     sf::Text inputText = sf::Text(resources.getPickedFont(), "|", 1);
@@ -222,7 +222,7 @@ public:
         inputText.setOrigin({inputText.getGlobalBounds().size.x + inputText.getLocalBounds().position.x,
                              0.f});
         inputText.setPosition(sf::Vector2f(inputPos.x + inputSize.x - textPadding - cursor.getSize().x, 0.f));
-        centerTextVertical(inputText, sf::Rect(inputPos, inputSize));
+        centerTextInsideVertical(inputText, sf::Rect(inputPos, inputSize));
         cursor.setPosition({inputText.findCharacterPos(cursorIndexPos).x,
                             inputPos.y + (inputSize.y/2)});
     }
@@ -255,8 +255,8 @@ public:
         drawOutlineOf(field.getGlobalBounds(), outlineWidth, outlineColor, target);
     }
 
-    ValueInput(){}
-    ValueInput(unsigned int posX, unsigned int posY, unsigned int sizeX, unsigned int sizeY,
+    LsValueInput(){}
+    LsValueInput(unsigned int posX, unsigned int posY, unsigned int sizeX, unsigned int sizeY,
                 sf::Color backgroundColor, sf::Color outlineColor, int outlineWidth, sf::Color textColor, std::variant<int, float, std::string> value, bool isDisabled = false){
         inputPos = {posX, posY};
         inputSize = {sizeX, sizeY};
@@ -292,11 +292,10 @@ public:
     }
 };
 
-class Zipper {
+class LsZipper {
 private:
     sf::RectangleShape zip;
     sf::RectangleShape per;
-    bool zipHeld = false;
     sf::Vector2u holdOffset;
 public:
     sf::Vector2u perSize;
@@ -304,6 +303,7 @@ public:
     sf::Vector2u zipSize;
     bool isVertical = false;
     bool isLocked = false;
+    bool isHeld = false;
 
     sf::Color perColor = defaultBackgroundColor;
     sf::Color zipColor = defaultForegroundColor;
@@ -388,19 +388,19 @@ public:
     }
 
     void tick(float dt, sf::RenderWindow& window) {
-        if (!zipHeld && !isLocked) {
+        if (!isHeld && !isLocked) {
             if (zip.getGlobalBounds().contains(static_cast<sf::Vector2f>(input.mousePos)) && input.mouseLeftJustPressed) {
-                zipHeld = true;
+                isHeld = true;
                 holdOffset = {zip.getPosition().x - input.mousePos.x, zip.getPosition().y - input.mousePos.y};
                 zip.setFillColor(sf::Color(std::clamp(zipColor.r-50, 0, 255), std::clamp(zipColor.g-50, 0, 255), std::clamp(zipColor.b-50, 0, 255)));
             }
         }
-        if (zipHeld && input.mouseLeftJustReleased) {
-            zipHeld = false;
+        if (isHeld && input.mouseLeftJustReleased) {
+            isHeld = false;
             zip.setFillColor(zipColor);
         }
 
-        if (zipHeld) {
+        if (isHeld) {
             if (isVertical) {
                 zip.setPosition(sf::Vector2f(perPos.x, std::clamp(input.mousePos.y + holdOffset.y, perPos.y+(zipSize.y/2), perPos.y+perSize.y-(zipSize.y/2))));
             }
@@ -425,8 +425,8 @@ public:
         per.setFillColor(perColor);
     }
 
-    Zipper(){}
-    Zipper(unsigned int posX, unsigned int posY, unsigned int sizeX, unsigned int sizeY, std::variant<int, float> curVal, std::variant<int, float> startVal, std::variant<int, float> endVal, unsigned int zipSizeX = 0, unsigned int zipSizeY = 0, int outlineWidth = 4) {
+    LsZipper(){}
+    LsZipper(unsigned int posX, unsigned int posY, unsigned int sizeX, unsigned int sizeY, std::variant<int, float> curVal, std::variant<int, float> startVal, std::variant<int, float> endVal, unsigned int zipSizeX = 0, unsigned int zipSizeY = 0, int outlineWidth = 4) {
         this->perSize = sf::Vector2u(sizeX, sizeY);
         this->perPos = sf::Vector2u(posX, posY);
         this->outlineWidth = outlineWidth;
@@ -456,7 +456,7 @@ public:
     }
 };
 
-class Button {
+class LsButton {
 private:
     sf::RectangleShape button;
     std::variant<sf::Text, sf::Sprite> signature = sf::Text(resources.getPickedFont(), "Herobrine");
@@ -504,8 +504,8 @@ public:
             target.draw(std::get<sf::Sprite>(signature));
     }
 
-    Button(){}
-    Button(sf::Vector2u buttonPos, sf::Vector2u buttonSize, std::string signature, unsigned int signatureHeight, int outlineWidth) {
+    LsButton(){}
+    LsButton(sf::Vector2u buttonPos, sf::Vector2u buttonSize, std::string signature, unsigned int signatureHeight, int outlineWidth) {
         this->buttonSize = buttonSize;
         this->buttonPos = buttonPos;
         this->outlineWidth = outlineWidth;
@@ -513,14 +513,14 @@ public:
 
         sf::Text temp = sf::Text(resources.getPickedFont(), signature, getFontSizeOfHeight(signatureHeight, resources.getPickedFont()));
         temp.setFillColor(textColor);
-        centerText(temp, sf::Rect(buttonPos, buttonSize));
+        centerTextInside(temp, sf::Rect(buttonPos, buttonSize));
         this->signature = temp;
 
         button.setPosition(sf::Vector2f(buttonPos.x, buttonPos.y));
         button.setSize(sf::Vector2f(buttonSize.x, buttonSize.y));
         button.setFillColor(backgroundColor);
     }
-    Button(sf::Vector2u buttonPos, sf::Vector2u buttonSize, const sf::Texture& signature, unsigned int signatureHeight, int outlineWidth) {
+    LsButton(sf::Vector2u buttonPos, sf::Vector2u buttonSize, const sf::Texture& signature, unsigned int signatureHeight, int outlineWidth) {
         this->buttonSize = buttonSize;
         this->buttonPos = buttonPos;
         this->outlineWidth = outlineWidth;
@@ -542,8 +542,8 @@ public:
 
 class ObjectEditPanel{
 private:
-    PreviewRenderer objectPreview;
-    std::unordered_map<std::string, ValueInput> inputs;
+    LsPreviewRenderer objectPreview;
+    std::unordered_map<std::string, LsValueInput> inputs;
     std::vector<sf::Text> labels;
     sf::RectangleShape panel;
 public:
@@ -571,7 +571,7 @@ public:
         newText.setPosition({panelPos.x + (outlineWidth*4), panelPos.y + ((5.f+panelSize.y/25)*rowNumber)});
 
         labels.emplace_back(newText);
-        inputs.emplace(std::pair<std::string, ValueInput>(label, ValueInput(panelPos.x + panelSize.x - (panelSize.x/2-(outlineWidth*5)), panelPos.y + ((5.f+panelSize.y/25)*rowNumber), panelSize.x/2-(outlineWidth*8), panelSize.y/25,
+        inputs.emplace(std::pair<std::string, LsValueInput>(label, LsValueInput(panelPos.x + panelSize.x - (panelSize.x/2-(outlineWidth*5)), panelPos.y + ((5.f+panelSize.y/25)*rowNumber), panelSize.x/2-(outlineWidth*8), panelSize.y/25,
                                sf::Color(180,180,180), sf::Color(100,100,100), 2, sf::Color(10,10,10), var, disableInput)));
     }
 
@@ -631,44 +631,120 @@ public:
     }
 };
 
-class Timeline {
+class LsTimeline {
 private:
-    std::vector<sf::RectangleShape> bgRects;
-    std::vector<sf::RectangleShape> topRowRects;
+    std::vector<sf::RectangleShape> layerBgRects;
+    sf::RectangleShape topRow;
+    std::vector<sf::RectangleShape> topRowTimeIndicators;
     std::vector<sf::Text> timeLabels;
-    Zipper verticalZipper;
-    Zipper horizontalZipper;
+    LsZipper verticalZipper;
+    LsZipper horizontalZipper;
 
-    sf::Vector2u topRowSize;
+    unsigned topRowHeight;
+    unsigned layerHeight;
     unsigned horizontalZipperHeight;
     unsigned verticalZipperWidth;
-    unsigned layerHeight;
+    unsigned spacingBetweenTimeLabels = 5;
 
     static constexpr int defaultLayerCapacity = 5;
     static constexpr float topRowHeightRatio = 0.1f;
     static constexpr float zipperHeightRatio = 0.1f;
+    static constexpr float textToTopRowHeightRatio = 0.6f;
 public:
     sf::Vector2u timelineSize;
     sf::Vector2u timelinePos;
 
-    Project* project;
+    LsProject* project;
 
-    sf::Color backgroundColor;
-    sf::Color foregroundColor;
-    sf::Color outlineColor;
+    unsigned currentViewPos = 0;
+    unsigned pixelsPerSecond = 500;
 
-    void generateTimeline() {
+    sf::Color backgroundColor = defaultBackgroundColor;
+    sf::Color foregroundColor = defaultForegroundColor;
+    sf::Color outlineColor = defaultOutlineColor;
 
+    void reloadTimeline() {
+        layerBgRects.clear();
+        topRowTimeIndicators.clear();
+        timeLabels.clear();
+
+        // top row background
+        topRow = sf::RectangleShape(sf::Vector2f(9999.f, topRowHeight));
+        topRow.setPosition(static_cast<sf::Vector2f>(timelinePos));
+        topRow.setFillColor(foregroundColor);
+
+        // layers backgrounds
+        unsigned currentPosY = timelinePos.y + topRowHeight;
+        for(int i = 0; i < project->numOfLayers; i++) {
+            sf::RectangleShape temp = sf::RectangleShape(sf::Vector2f(9999.f, layerHeight));
+            temp.setPosition(sf::Vector2f(timelinePos.x, currentPosY));
+            temp.setFillColor(backgroundColor);
+
+            currentPosY += layerHeight;
+
+            layerBgRects.emplace_back(temp);
+        }
+
+        // top row time signatures
+        unsigned textHeight = std::floor(static_cast<float>(topRowHeight) * textToTopRowHeightRatio);
+        sf::Text test(resources.getPickedFont(), "000:00.00", getFontSizeOfHeight(textHeight, resources.getPickedFont()));
+        unsigned textWidth = test.getGlobalBounds().size.x;
+
+        unsigned minHundredths = static_cast<unsigned>(
+        std::ceil((textWidth + spacingBetweenTimeLabels) / static_cast<float>(pixelsPerSecond) * 100.f));
+        unsigned hundredths = ((minHundredths + 24) / 25) * 25; // round up to nearest multiple of 0.25s
+        float secondsInterval = hundredths / 100.f;
+
+        float spaceBetweenIntervals = static_cast<float>(pixelsPerSecond)*secondsInterval;
+        unsigned numIntervals = static_cast<unsigned>(project->length / secondsInterval);
+        for(int i = 1; i < numIntervals; i++) {
+            float currentPosX = i * spaceBetweenIntervals;
+
+            sf::RectangleShape temp = sf::RectangleShape(sf::Vector2f(std::ceil(static_cast<float>(pixelsPerSecond)/50), topRowHeight - textHeight));
+            temp.setOrigin({temp.getGlobalBounds().size.x/2, temp.getGlobalBounds().size.y});
+            temp.setPosition({std::round(timelinePos.x + currentPosX), timelinePos.y + topRowHeight});
+            temp.setFillColor(backgroundColor);
+
+            topRowTimeIndicators.emplace_back(temp);
+
+            sf::Text tempT = sf::Text(resources.getPickedFont(), getTimeString(i * secondsInterval), getFontSizeOfHeight(textHeight, resources.getPickedFont()));
+            centerTextOrigin(tempT);
+            tempT.setPosition(sf::Vector2f(timelinePos.x + currentPosX, timelinePos.y + (textHeight/2)));
+            tempT.setFillColor(backgroundColor);
+
+            timeLabels.emplace_back(tempT);
+        }
     }
 
-    void generateZippers() {
-
+    void draw(sf::RenderTarget& target) {
+        target.draw(topRow);
+        for(int i = 0; i < layerBgRects.size(); i++) {
+            target.draw(layerBgRects[i]);
+            drawOutlineOf(layerBgRects[i].getGlobalBounds(), 2.f, outlineColor, target);
+        }
+        for(int i = 0; i < topRowTimeIndicators.size(); i++) {
+            target.draw(topRowTimeIndicators[i]);
+        }
+        for(int i = 0; i < timeLabels.size(); i++) {
+            target.draw(timeLabels[i]);
+        }
     }
 
-    Timeline(){}
-    Timeline(sf::Vector2u timelinePos, sf::Vector2u timelineSize, Project& project) {
+    LsTimeline(){}
+    LsTimeline(sf::Vector2u timelinePos, sf::Vector2u timelineSize, LsProject& project) {
         this->timelineSize = timelineSize;
         this->timelinePos = timelinePos;
         this->project = &project;
+
+        topRowHeight = static_cast<unsigned>(std::round(static_cast<float>(timelineSize.y)*topRowHeightRatio));
+        horizontalZipperHeight = topRowHeight;
+        unsigned modulo = (timelineSize.y - topRowHeight - horizontalZipperHeight) % defaultLayerCapacity;
+        if(modulo != 0) {
+            horizontalZipperHeight += modulo;
+        }
+        layerHeight = (timelineSize.y - topRowHeight - horizontalZipperHeight) / defaultLayerCapacity;
+        verticalZipperWidth = horizontalZipperHeight;
+
+        reloadTimeline();
     }
 };

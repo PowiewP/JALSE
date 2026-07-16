@@ -17,20 +17,22 @@ sf::Clock deltaClock;
 float dt = 0.f;
 float timer = 0.f;
 
-PreviewRenderer prevRend;
-Project proj;
+LsPreviewRenderer prevRend;
+LsProject proj;
 
-ValueInput valueInput1;
-ValueInput valueInput2;
-ValueInput valueInput3;
+LsValueInput valueInput1;
+LsValueInput valueInput2;
+LsValueInput valueInput3;
 
 ObjectEditPanel panel;
 
 LsObject obj2;
 unsigned int ID = 1;
 
-Zipper zipper;
-Button button;
+LsZipper zipper;
+LsButton button;
+
+LsTimeline timeline;
 
 void mainLoop(){
     LasershowPlaybackManager lsPlayback(proj);
@@ -97,16 +99,14 @@ void mainLoop(){
         panel.draw(windowManager.window);
         zipper.draw(windowManager.window);
         button.draw(windowManager.window);
+        timeline.draw(windowManager.window);
         windowManager.window.display();
         lsPlayback.drawWithLaser();
     }
 }
 
 int main(){
-    windowManager = WindowManager(1820, 980, false);
-
-    proj.length = 60.f;
-    proj.numOfLayers = 1;
+    windowManager = WindowManager(2520, 1280, false);
 
     obj2 = LsObject("Circling Dots", "real existing object", 0.f, 1000.f, 0);
     obj2.getProperty("Dots Count").setConfig(32);
@@ -131,21 +131,23 @@ int main(){
     //proj.loadProject();
     proj.saveProject();
 
-    prevRend = PreviewRenderer(100, 100, 819, 819, 30, proj);
+    prevRend = LsPreviewRenderer(100, 100, 819, 819, 30, proj);
 
     /*valueInput1 = ValueInput(700, 100, 300, 50, sf::Color(230,230,230), sf::Color(100,100,100), 5, sf::Color(80,8,8), proj.getLsObjectByID(1).getProperty("circleRadiusX").getConfig<float>());
     valueInput2 = ValueInput(700, 300, 400, 60, sf::Color(230,230,230), sf::Color(100,100,100), 5, sf::Color(8,8,8), proj.getLsObjectByID(1).getProperty("numOfDots").getConfig<int>());
     valueInput3 = ValueInput(700, 600, 400, 70, sf::Color(230,230,230), sf::Color(100,100,100), 5, sf::Color(8,8,8), "sup");*/
 
-    resources.pickFont("SourceSanPro");
+    resources.pickFont("Arial");
 
     panel = ObjectEditPanel(1000, 100, 700, 800, sf::Color(230,230,230), sf::Color(100,100,100), 5, proj.getLsObjectByID(ID));
 
-    zipper = Zipper(20, 20, 1000, 50, 50.f, 0.f, 100.f);
+    zipper = LsZipper(20, 20, 1000, 50, 50.f, 0.f, 100.f);
     zipper.setColors({100, 0, 0}, {200, 0, 0}, {50, 0, 0});
 
-    button = Button({1300, 750}, {200, 200}, resources.getTexture("nigger"), 150, 4);
+    button = LsButton({1300, 750}, {200, 200}, resources.getTexture("nigger"), 150, 4);
     button.setColors({150, 0, 0}, {100, 0, 0});
+
+    timeline = LsTimeline({100, 700}, {700, 500}, proj);
 
     deltaClock.restart();
     mainLoop();

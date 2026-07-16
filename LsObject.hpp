@@ -20,7 +20,7 @@ struct Vector2Ls{
     LsValue value;
 };
 
-class Project;
+class LsProject;
 
 class LsProperty{
 private:
@@ -298,7 +298,7 @@ public:
     ModifierMode mode;
     ModifierType type;
 
-    Project* projectBelonging;
+    LsProject* projectBelonging;
     std::unordered_set<unsigned int> linkedObjectsIDs;
     std::string linkedPropertyName;
 

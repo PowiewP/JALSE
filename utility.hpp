@@ -62,7 +62,15 @@ inline sf::FloatRect getReferenceBounds(const sf::Text& text) {
     return temp.getLocalBounds();
 }
 
-inline void centerText(sf::Text& text, const sf::Rect<unsigned int>& rect) {
+inline void centerTextOrigin(sf::Text& text) {
+    sf::FloatRect bounds = text.getLocalBounds();
+    sf::FloatRect ref = getReferenceBounds(text);
+
+    text.setOrigin({bounds.position.x + bounds.size.x / 2.f,
+                     ref.position.y + ref.size.y / 2.f});
+}
+
+inline void centerTextInside(sf::Text& text, const sf::Rect<unsigned int>& rect) {
     sf::FloatRect bounds = text.getLocalBounds();
     sf::FloatRect ref = getReferenceBounds(text);
 
@@ -73,7 +81,7 @@ inline void centerText(sf::Text& text, const sf::Rect<unsigned int>& rect) {
                        rect.position.y + rect.size.y / 2.f});
 }
 
-inline void centerTextVertical(sf::Text& text, const sf::Rect<unsigned int>& rect) {
+inline void centerTextInsideVertical(sf::Text& text, const sf::Rect<unsigned int>& rect) {
     sf::FloatRect ref = getReferenceBounds(text);
 
     text.setOrigin({text.getOrigin().x, ref.position.y + ref.size.y / 2.f});
@@ -106,4 +114,25 @@ inline std::string logLsValueInfo(const LsValue& val){
     }
     //info += "\nValue: to implement in log";
     return info;
+}
+
+inline std::string getTimeString(float timeInSeconds) {
+    //format - minutes::seconds::milliseconds
+    unsigned totalCentiseconds = static_cast<unsigned>(std::round(timeInSeconds * 100.f));
+    unsigned minutes = totalCentiseconds / 6000;
+    unsigned seconds = (totalCentiseconds / 100) % 60;
+    unsigned centiseconds = totalCentiseconds % 100;
+
+    std::string timeString = std::to_string(minutes) + ":";
+    if(seconds >= 10)
+        timeString += std::to_string(seconds) + ".";
+    else
+        timeString += "0" + std::to_string(seconds) + ".";
+
+    if(centiseconds >= 10)
+        timeString += std::to_string(centiseconds);
+    else
+        timeString += "0" + std::to_string(centiseconds);
+
+    return timeString;
 }

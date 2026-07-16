@@ -11,7 +11,7 @@
 #include "utility.hpp"
 #include "globals.hpp"
 
-class Project{
+class LsProject{
 private:
     unsigned int curObjectID = 1;
 public:
@@ -20,10 +20,10 @@ public:
     std::unordered_map<unsigned int, LsContainer> containers;
     std::vector<sf::SoundBuffer> audios;
 
-    float length = 0.f;
+    float length = 60.f;
     std::string name = "New Project";
     std::string dateOfCreation;
-    unsigned int numOfLayers = 1;
+    unsigned int numOfLayers = 5;
 
     unsigned int emplaceLsObject(LsObject obj){
         objects[curObjectID] = obj;
@@ -249,18 +249,18 @@ public:
         return true;
     }
 
-    Project(){
+    LsProject(){
         dateOfCreation = getTodayString();
     }
 
-    Project(std::string projectName, bool loadFromFile = false){
+    LsProject(std::string projectName, bool loadFromFile = false){
         dateOfCreation = getTodayString();
         name = projectName;
         if(loadFromFile)
             loadProject();
     }
 
-    Project& operator=(const Project& other){
+    LsProject& operator=(const LsProject& other){
         length = other.length;
         name = other.name;
         dateOfCreation = other.dateOfCreation;
@@ -317,7 +317,7 @@ public:
 
     float timestamp = 0.f;
 
-    Project* loadedProject;
+    LsProject* loadedProject;
     std::vector<HeliosPoint> points;
 
     bool openMyLaser(){
@@ -371,7 +371,7 @@ public:
     ~LasershowPlaybackManager() {
         closeMyLaser();
     }
-    LasershowPlaybackManager(Project& projectToUse){
+    LasershowPlaybackManager(LsProject& projectToUse){
         loadedProject = &projectToUse;
     }
 };

@@ -10,9 +10,9 @@
 #include "utility.hpp"
 #include "globals.hpp"
 
-class LsObject;
+class LsEffect;
 
-using EffectFunc = void(*)(LsObject*, float);
+using EffectFunc = void(*)(LsEffect*, float);
 using LsValue = std::variant<bool, int, float>;
 
 struct Vector2Ls{
@@ -114,7 +114,7 @@ struct LsEffectInfo{
     }
 };
 
-class LsObject{
+class LsEffect{
 private:
     std::unordered_map<std::string, LsProperty> effectProperties ={
         {"Pos X", LsProperty(2047.f)},
@@ -238,8 +238,8 @@ public:
     }
 
     void initializeEffect();
-    LsObject(){}
-    LsObject(std::string effectName, std::string objectName, float startTime, float duration, unsigned int layer, bool isInsideContainer = false);
+    LsEffect(){}
+    LsEffect(std::string effectName, std::string objectName, float startTime, float duration, unsigned int layer, bool isInsideContainer = false);
     //the full constructor is defined in LsObject.cpp due to access reasons
 };
 
@@ -336,7 +336,7 @@ public:
 
 class LsContainer{
 private:
-    std::vector<LsObject*> cachedObjects;
+    std::vector<LsEffect*> cachedObjects;
     std::vector<LsModifier*> cachedModifiers;
 public:
     std::string containerName = "New Container";

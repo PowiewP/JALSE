@@ -15,7 +15,7 @@ class LsProject{
 private:
     unsigned int curObjectID = 1;
 public:
-    std::unordered_map<unsigned int, LsObject> objects;
+    std::unordered_map<unsigned int, LsEffect> objects;
     std::unordered_map<unsigned int, LsModifier> modifiers;
     std::unordered_map<unsigned int, LsContainer> containers;
     std::vector<sf::SoundBuffer> audios;
@@ -25,7 +25,7 @@ public:
     std::string dateOfCreation;
     unsigned int numOfLayers = 5;
 
-    unsigned int emplaceLsObject(LsObject obj){
+    unsigned int emplaceLsEffect(LsEffect obj){
         objects[curObjectID] = obj;
         curObjectID++;
         return curObjectID - 1;
@@ -38,26 +38,26 @@ public:
         return curObjectID - 1;
     }
 
-    LsObject& getLsObjectByID(unsigned int ID){
+    LsEffect& getLsEffectByID(unsigned int ID){
         auto it = objects.find(ID);
         if(it != objects.end())
             return objects[ID];
-        throw std::runtime_error("getLsObjectByID failed for ID"+std::to_string(ID)+"\n");
+        throw std::runtime_error("getLsEffectByID failed for ID "+std::to_string(ID)+"\n");
     }
 
-    LsObject& getLsObjectByName(const std::string& name){
+    LsEffect& getLsEffectByName(const std::string& name){
         for(auto& pair : objects){
             if(pair.second.objectName == name)
                 return pair.second;
         }
-        throw std::runtime_error("getLsObjectByName failed for name"+name+"\n");
+        throw std::runtime_error("getLsEffectByName failed for name "+name+"\n");
     }
 
     LsModifier& getLsModifierByID(unsigned int ID){
         auto it = modifiers.find(ID);
         if(it != modifiers.end())
             return modifiers[ID];
-        throw std::runtime_error("getLsModifierByID failed for ID"+std::to_string(ID)+"\n");
+        throw std::runtime_error("getLsModifierByID failed for ID "+std::to_string(ID)+"\n");
     }
 
     LsModifier& getLsModifierByName(const std::string& name){
@@ -65,7 +65,7 @@ public:
             if(pair.second.modifierName == name)
                 return pair.second;
         }
-        throw std::runtime_error("getLsModifierByName failed for name"+name+"\n");
+        throw std::runtime_error("getLsModifierByName failed for name "+name+"\n");
     }
 
     std::vector<HeliosPoint> requestFrame(float timestamp, const std::unordered_set<unsigned int>& objectsIDs = {}){
@@ -101,7 +101,7 @@ public:
         //LsObjects
         file << objects.size() << "\n";
         for(auto& objEntry : objects){
-            LsObject& obj = objEntry.second;
+            LsEffect& obj = objEntry.second;
             file << obj.objectName << "\n";
             file << obj.effectName << "\n";
             file << obj.layer << " " << obj.startTime << " " << obj.duration << " " << obj.isInsideContainer << "\n";
@@ -175,7 +175,7 @@ public:
         // LsObjects
         file >> c1;
         for(int i = 0; i < c1; i++){
-            LsObject readO;
+            LsEffect readO;
             file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             readO.objectName = getlineStripped(file);
             readO.effectName = getlineStripped(file);

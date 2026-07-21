@@ -296,7 +296,7 @@ class LsZipper {
 private:
     sf::RectangleShape zip;
     sf::RectangleShape per;
-    sf::Vector2u holdOffset;
+    sf::Vector2i holdOffset;
 public:
     sf::Vector2u perSize;
     sf::Vector2u perPos;
@@ -364,6 +364,19 @@ public:
             edgeEnd = perPos.y + perSize.y - (zipSize.y/2);
             zip.setPosition(sf::Vector2f(perPos.x, perPos.y+(zipSize.y/2) + ((edgeEnd - edgeStart) * t)));
         }
+    }
+
+    float getZipFactor() {
+        float edgeStart = perPos.x + (zipSize.x/2);
+        float edgeEnd = perPos.x + perSize.x - (zipSize.x/2);
+        float zipPos = zip.getPosition().x;
+        if (isVertical) {
+            edgeStart = perPos.y + (zipSize.y/2);
+            edgeEnd = perPos.y + perSize.y - (zipSize.y/2);
+            zipPos = zip.getPosition().y;
+        }
+
+        return ( (zipPos - edgeStart) / (edgeEnd - edgeStart) );
     }
 
     template<typename T>
@@ -555,7 +568,7 @@ public:
     int outlineWidth;
 
     int objectID;
-    LsObject* loadedObject;
+    LsEffect* loadedObject;
 
     void tick(float dt, sf::RenderWindow& window){
         for(auto& it : inputs) {
@@ -620,7 +633,7 @@ public:
 
     ObjectEditPanel(){}
     ObjectEditPanel(unsigned int posX, unsigned int posY, unsigned int sizeX, unsigned int sizeY,
-                     sf::Color backgroundColor, sf::Color outlineColor, int outlineWidth, LsObject& object){
+                     sf::Color backgroundColor, sf::Color outlineColor, int outlineWidth, LsEffect& object){
         panelSize = {sizeX, sizeY};
         panelPos = {posX, posY};
         this->backgroundColor = backgroundColor;
@@ -631,6 +644,16 @@ public:
     }
 };
 
+class LsTimelineBlock {
+private:
+    std::variant<LsEffect*, LsModifier*, LsContainer*> heldObject;
+
+public:
+    int objectTypeIndex = 0;
+
+    LsTimelineBlock() = default;
+};
+
 class LsTimeline {
 private:
     std::vector<sf::RectangleShape> layerBgRects;
@@ -639,6 +662,10 @@ private:
     std::vector<sf::Text> timeLabels;
     LsZipper verticalZipper;
     LsZipper horizontalZipper;
+
+    sf::RenderTexture renderTexture;
+    sf::View timelineView;
+    sf::Sprite displaySprite = sf::Sprite(resources.getTexture("Error"));
 
     unsigned topRowHeight;
     unsigned layerHeight;
@@ -656,7 +683,7 @@ public:
 
     LsProject* project;
 
-    unsigned currentViewPos = 0;
+    sf::Vector2u currentViewPos = {0, 0};
     unsigned pixelsPerSecond = 500;
 
     sf::Color backgroundColor = defaultBackgroundColor;
@@ -668,15 +695,25 @@ public:
         topRowTimeIndicators.clear();
         timeLabels.clear();
 
+        //set useful values
+        topRowHeight = static_cast<unsigned>(std::round(static_cast<float>(timelineSize.y)*topRowHeightRatio));
+        horizontalZipperHeight = topRowHeight;
+        unsigned modulo = (timelineSize.y - topRowHeight - horizontalZipperHeight) % defaultLayerCapacity;
+        if(modulo != 0) {
+            horizontalZipperHeight += modulo;
+        }
+        layerHeight = (timelineSize.y - topRowHeight - horizontalZipperHeight) / defaultLayerCapacity;
+        verticalZipperWidth = horizontalZipperHeight;
+
         // top row background
-        topRow = sf::RectangleShape(sf::Vector2f(9999.f, topRowHeight));
+        topRow = sf::RectangleShape(sf::Vector2f(9999999999999999.f, topRowHeight));
         topRow.setPosition(static_cast<sf::Vector2f>(timelinePos));
         topRow.setFillColor(foregroundColor);
 
         // layers backgrounds
         unsigned currentPosY = timelinePos.y + topRowHeight;
         for(int i = 0; i < project->numOfLayers; i++) {
-            sf::RectangleShape temp = sf::RectangleShape(sf::Vector2f(9999.f, layerHeight));
+            sf::RectangleShape temp = sf::RectangleShape(sf::Vector2f(9999999999999999.f, layerHeight));
             temp.setPosition(sf::Vector2f(timelinePos.x, currentPosY));
             temp.setFillColor(backgroundColor);
 
@@ -700,7 +737,7 @@ public:
         for(int i = 1; i < numIntervals; i++) {
             float currentPosX = i * spaceBetweenIntervals;
 
-            sf::RectangleShape temp = sf::RectangleShape(sf::Vector2f(std::ceil(static_cast<float>(pixelsPerSecond)/50), topRowHeight - textHeight));
+            sf::RectangleShape temp = sf::RectangleShape(sf::Vector2f(5.f, topRowHeight - textHeight));
             temp.setOrigin({temp.getGlobalBounds().size.x/2, temp.getGlobalBounds().size.y});
             temp.setPosition({std::round(timelinePos.x + currentPosX), timelinePos.y + topRowHeight});
             temp.setFillColor(backgroundColor);
@@ -714,37 +751,81 @@ public:
 
             timeLabels.emplace_back(tempT);
         }
+
+        verticalZipper = LsZipper(timelinePos.x + timelineSize.x - verticalZipperWidth, timelinePos.y,
+            verticalZipperWidth, timelineSize.y - horizontalZipperHeight,
+            0, 0, 1000, 0, 0, 4);
+
+        horizontalZipper = LsZipper(timelinePos.x, timelinePos.y + timelineSize.y - horizontalZipperHeight,
+            timelineSize.x - verticalZipperWidth, horizontalZipperHeight,
+            static_cast<int>(currentViewPos.x), 0, static_cast<int>(pixelsPerSecond * (project->length - (static_cast<float>(timelineSize.x)/static_cast<float>(pixelsPerSecond)))),
+            0, 0, 2);
+
+    }
+
+    void setZoom(unsigned pixelsPerSecond) {
+        float currentViewPosFactor = horizontalZipper.getZipFactor();
+
+        this->pixelsPerSecond = pixelsPerSecond;
+
+        reloadTimeline();
+
+        horizontalZipper.setValue(static_cast<int>(currentViewPosFactor * pixelsPerSecond * (project->length - (static_cast<float>(timelineSize.x)/static_cast<float>(pixelsPerSecond)))));
+    }
+
+    void tick(float dt, sf::RenderWindow& window) {
+        verticalZipper.tick(dt, window);
+        horizontalZipper.tick(dt, window);
+
+        //horizontalZipper.resizeZip(((static_cast<float>(timelineSize.x/pixelsPerSecond)/(static_cast<float>(pixelsPerSecond)*project->length)))*timelineSize.x, horizontalZipperHeight);
+        // to do
+
+        currentViewPos.x = horizontalZipper.getValue<int>();
+        currentViewPos.y = verticalZipper.getValue<int>();
     }
 
     void draw(sf::RenderTarget& target) {
-        target.draw(topRow);
+        renderTexture.clear(sf::Color::Transparent);
+
+        timelineView.setCenter(sf::Vector2f(timelinePos.x + (timelineSize.x/2) + currentViewPos.x, timelinePos.y + (timelineSize.y/2) + currentViewPos.y));
+        renderTexture.setView(timelineView);
+
         for(int i = 0; i < layerBgRects.size(); i++) {
-            target.draw(layerBgRects[i]);
-            drawOutlineOf(layerBgRects[i].getGlobalBounds(), 2.f, outlineColor, target);
+            renderTexture.draw(layerBgRects[i]);
+            drawOutlineOf(layerBgRects[i].getGlobalBounds(), 2.f, outlineColor, renderTexture);
         }
+
+        timelineView.setCenter(sf::Vector2f(timelinePos.x + (timelineSize.x/2) + currentViewPos.x, timelinePos.y + (timelineSize.y/2)));
+        renderTexture.setView(timelineView);
+
+        renderTexture.draw(topRow);
         for(int i = 0; i < topRowTimeIndicators.size(); i++) {
-            target.draw(topRowTimeIndicators[i]);
+            renderTexture.draw(topRowTimeIndicators[i]);
         }
         for(int i = 0; i < timeLabels.size(); i++) {
-            target.draw(timeLabels[i]);
+            renderTexture.draw(timeLabels[i]);
         }
+
+        renderTexture.display();
+        displaySprite.setTexture(renderTexture.getTexture(), true);
+        displaySprite.setPosition(sf::Vector2f(timelinePos));
+        target.draw(displaySprite);
+
+        verticalZipper.draw(target);
+        horizontalZipper.draw(target);
     }
 
-    LsTimeline(){}
+    LsTimeline() = default;
     LsTimeline(sf::Vector2u timelinePos, sf::Vector2u timelineSize, LsProject& project) {
         this->timelineSize = timelineSize;
         this->timelinePos = timelinePos;
         this->project = &project;
 
-        topRowHeight = static_cast<unsigned>(std::round(static_cast<float>(timelineSize.y)*topRowHeightRatio));
-        horizontalZipperHeight = topRowHeight;
-        unsigned modulo = (timelineSize.y - topRowHeight - horizontalZipperHeight) % defaultLayerCapacity;
-        if(modulo != 0) {
-            horizontalZipperHeight += modulo;
-        }
-        layerHeight = (timelineSize.y - topRowHeight - horizontalZipperHeight) / defaultLayerCapacity;
-        verticalZipperWidth = horizontalZipperHeight;
-
         reloadTimeline();
+
+        renderTexture.resize(timelineSize);
+        timelineView.setSize(static_cast<sf::Vector2f>(timelineSize));
+        timelineView.setCenter(sf::Vector2f(timelinePos.x + (timelineSize.x/2), timelinePos.y + (timelineSize.y/2)));
+        renderTexture.setView(timelineView);
     }
 };

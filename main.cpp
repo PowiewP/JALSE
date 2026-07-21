@@ -26,7 +26,7 @@ LsValueInput valueInput3;
 
 ObjectEditPanel panel;
 
-LsObject obj2;
+LsEffect obj2;
 unsigned int ID = 1;
 
 LsZipper zipper;
@@ -47,12 +47,6 @@ void mainLoop(){
         if(input.keyIsHeld[sf::Keyboard::Scancode::Escape] || !windowManager.window.isOpen()){
             running = false;
         }
-        if (input.keyIsHeld[sf::Keyboard::Scancode::T]) {
-            zipper.setValue(timer);
-            zipper.isLocked = true;
-        }
-        else
-            zipper.isLocked = false;
 
         lsPlayback.play(dt);
         prevRend.play(dt);
@@ -79,17 +73,22 @@ void mainLoop(){
         if(input.keyJustPressed[sf::Keyboard::Scancode::Backslash]){
             if(ID == 1){
                 ID++;
-                panel = ObjectEditPanel(1000, 100, 700, 800, sf::Color(230,230,230), sf::Color(100,100,100), 5, proj.getLsObjectByID(ID));
+                panel = ObjectEditPanel(1000, 100, 700, 800, sf::Color(230,230,230), sf::Color(100,100,100), 5, proj.getLsEffectByID(ID));
             }
             else{
                 ID--;
-                panel = ObjectEditPanel(1000, 100, 700, 800, sf::Color(230,230,230), sf::Color(100,100,100), 5, proj.getLsObjectByID(ID));
+                panel = ObjectEditPanel(1000, 100, 700, 800, sf::Color(230,230,230), sf::Color(100,100,100), 5, proj.getLsEffectByID(ID));
             }
         }
 
         panel.tick(dt, windowManager.window);
         zipper.tick(dt, windowManager.window);
         button.tick(dt, windowManager.window);
+        timeline.tick(dt, windowManager.window);
+
+        if(zipper.isHeld) {
+            timeline.setZoom(zipper.getValue<int>());
+        }
 
         windowManager.window.clear(backgroundColor);
         prevRend.draw(windowManager.window);
@@ -108,17 +107,17 @@ void mainLoop(){
 int main(){
     windowManager = WindowManager(2520, 1280, false);
 
-    obj2 = LsObject("Circling Dots", "real existing object", 0.f, 1000.f, 0);
-    obj2.getProperty("Dots Count").setConfig(32);
-    obj2.getProperty("Moving Clockwise").setConfig(false);
-    ID = proj.emplaceLsObject(obj2);
+    obj2 = LsEffect("Circling Dots", "real existing object", 0.f, 1000.f, 0);
+    //obj2.getProperty("Dots Count").setConfig(32);
+    //obj2.getProperty("Moving Clockwise").setConfig(false);
+    ID = proj.emplaceLsEffect(obj2);
 
-    obj2 = LsObject("Single Dot", "dot", 0.f, 1000.f, 0);
+    //obj2 = LsObject("Triangle", "tri", 0.f, 1000.f, 0);
     //proj.emplaceLsObject(obj2);
 
-    LsModifier mod = LsModifier("Circle Scale X", 1.f, 0.1f, 1.f, 0.f, SET, EASEINOUTSINE, 5000.f, true);
-    mod.link(ID);
-    proj.emplaceLsModifier(mod);
+    //LsModifier mod = LsModifier("Circle Scale X", 1.f, 0.1f, 1.f, 0.f, SET, EASEINOUTSINE, 5000.f, true);
+    //mod.link(ID);
+    //proj.emplaceLsModifier(mod);
 
     /*obj2 = LsObject("Triangle", "tria", 0.f, 1000.f, 0);
     ID = proj.emplaceLsObject(obj2);
@@ -139,15 +138,15 @@ int main(){
 
     resources.pickFont("Arial");
 
-    panel = ObjectEditPanel(1000, 100, 700, 800, sf::Color(230,230,230), sf::Color(100,100,100), 5, proj.getLsObjectByID(ID));
+    panel = ObjectEditPanel(1000, 100, 700, 800, sf::Color(230,230,230), sf::Color(100,100,100), 5, proj.getLsEffectByID(ID));
 
-    zipper = LsZipper(20, 20, 1000, 50, 50.f, 0.f, 100.f);
+    zipper = LsZipper(20, 20, 1000, 50, 500, 50, 1000);
     zipper.setColors({100, 0, 0}, {200, 0, 0}, {50, 0, 0});
 
     button = LsButton({1300, 750}, {200, 200}, resources.getTexture("nigger"), 150, 4);
     button.setColors({150, 0, 0}, {100, 0, 0});
 
-    timeline = LsTimeline({100, 700}, {700, 500}, proj);
+    timeline = LsTimeline({100, 700}, {1500, 500}, proj);
 
     deltaClock.restart();
     mainLoop();

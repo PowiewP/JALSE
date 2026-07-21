@@ -10,7 +10,7 @@
 #include "globals.hpp"
 #include "classes.hpp"
 
-using EffectFunc = void(*)(LsObject*, float);
+using EffectFunc = void(*)(LsEffect*, float);
 using LsValue = std::variant<bool, int, float>;
 
 void placeBlank(std::vector<HeliosPoint>& points, const sf::Vector2f& pos){
@@ -41,7 +41,7 @@ void placePoint(std::vector<HeliosPoint>& points, const sf::Vector2f& pos, const
     points.emplace_back(HeliosPoint{x, y, r, g, b, 1});
 }
 
-void playCirclingDots(LsObject* ls, float dt){
+void playCirclingDots(LsEffect* ls, float dt){
     int& numOfDots = ls->GEF<int>("Dots Count");
     bool& movingClockwise = ls->GEF<bool>("Moving Clockwise");
     float& rotationsPerSecond = ls->GEF<float>("Rotations Per Second");
@@ -71,7 +71,7 @@ void playCirclingDots(LsObject* ls, float dt){
     }
 }
 
-void playSingleDot(LsObject* ls, float dt){
+void playSingleDot(LsEffect* ls, float dt){
     float pointRadius = ls->GEF<float>("Point Scale") * ls->GEF<float>("Size X");
     bool square = ls->GEF<bool>("Square Dot");
     float posX = ls->GEF<float>("Pos X");
@@ -112,7 +112,7 @@ void playSingleDot(LsObject* ls, float dt){
     }
 }
 
-void playSingleLine(LsObject* ls, float dt){
+void playSingleLine(LsEffect* ls, float dt){
     float beginPosX = ls->GEF<float>("Pos X") - (ls->GEF<float>("Size X")/2.f);
     float beginPosY = ls->GEF<float>("Pos Y");
     float endPosX = ls->GEF<float>("Pos X") + (ls->GEF<float>("Size X")/2.f);
@@ -126,7 +126,7 @@ void playSingleLine(LsObject* ls, float dt){
     placeBlank(ls->points, {endPosX, endPosY});
 }
 
-void playTriangle(LsObject* ls, float dt) {
+void playTriangle(LsEffect* ls, float dt) {
     float bottomLeftX = ls->GEF<float>("Pos X") - (ls->GEF<float>("Size X")/2.f);
     float bottomLeftY = ls->GEF<float>("Pos Y") + (ls->GEF<float>("Size Y")/2.f);
     float sizeX = ls->GEF<float>("Size X");
@@ -185,7 +185,7 @@ std::unordered_map<std::string, LsEffectInfo> effectInfo = {
 
 };
 
-void LsObject::initializeEffect(){
+void LsEffect::initializeEffect(){
     effectFunc = effectList[effectName];
     for (const auto& [key, val] : effectInfo[effectName].propertySet) {
         effectProperties.emplace(key, val); // copies, doesn't touch the template
@@ -195,7 +195,7 @@ void LsObject::initializeEffect(){
     this->forceSquareShape = effectInfo[effectName].forceSquareShape;
 }
 
-LsObject::LsObject(std::string effectName, std::string objectName, float startTime, float duration, unsigned int layer, bool isInsideContainer){
+LsEffect::LsEffect(std::string effectName, std::string objectName, float startTime, float duration, unsigned int layer, bool isInsideContainer){
     this->effectName = effectName;
     this->objectName = objectName;
     this->startTime = startTime;
@@ -211,7 +211,7 @@ void LsModifier::runForAllObjectsAt(float timestamp){
         return;
 
     for(unsigned int ID : linkedObjectsIDs){
-        LsObject& obj = projectBelonging->getLsObjectByID(ID);
+        LsEffect& obj = projectBelonging->getLsEffectByID(ID);
 
         float modTimestamp = timestamp - startTime;
         int repeat = 1;
